@@ -1,0 +1,201 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Button } from "@/src/features/common/components/Button";
+import { Field } from "@/src/features/common/components/Field";
+import { ApiError, type FieldErrors } from "@/src/features/common/domain/api";
+import { EXPERIENCE_TYPE_LABEL, type ExperienceType } from "@/src/features/experiencias/domain/experience";
+import { useExperienceMeta } from "@/src/features/experiencias/hooks/useExperiences";
+import type { CreateMemoryRequest } from "../domain/memory-request";
+import { useCreateRequest } from "../hooks/useRequests";
+
+const TYPES = Object.keys(EXPERIENCE_TYPE_LABEL) as ExperienceType[];
+const control =
+  "mt-1.5 w-full rounded-lg border bg-bg px-3 py-2.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent";
+
+// Mismas reglas que el DTO de propuestas en la API
+function validate(data: CreateMemoryRequest): FieldErrors {
+  const errors: FieldErrors = {};
+  if (data.title.length < 3 || data.title.length > 150) errors.title = "El título debe tener entre 3 y 150 caracteres";
+  if (data.description.length < 10) errors.description = "La descripción debe tener al menos 10 caracteres";
+  if (data.imageUrl && !/^https?:\/\/\S+$/.test(data.imageUrl)) errors.imageUrl = "Escribe una URL que empiece por http:// o https://";
+  if (data.date && data.date > new Date().toISOString().slice(0, 10)) errors.date = "La fecha no puede estar en el futuro";
+  return errors;
+}
+
+export function MemoryRequestForm() {
+  const router = useRouter();
+  const createRequest = useCreateRequest();
+  const meta = useExperienceMeta();
+  const [form, setForm] = useState({ title: "", type: "viaje" as ExperienceType, description: "", date: "", imageUrl: "" });
+  const [participants, setParticipants] = useState<string[]>([]);
+  const [newPerson, setNewPerson] = useState("");
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [previewFailed, setPreviewFailed] = useState(false);
+
+  function update(field: keyof typeof form) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+      setForm((f) => ({ ...f, [field]: e.target.value }));
+  }
+
+  function togglePerson(name: string) {
+    setParticipants((list) => (list.includes(name) ? list.filter((p) => p !== name) : [...list, name]));
+  }
+
+  function addPerson() {
+    const name = newPerson.trim();
+    if (name && !participants.includes(name)) setParticipants((list) => [...list, name]);
+    setNewPerson("");
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const data: CreateMemoryRequest = {
+      title: form.title.trim(),
+      type: form.type,
+      description: form.description.trim(),
+      participants,
+      ...(form.date && { date: form.date }),
+      ...(form.imageUrl.trim() && { imageUrl: form.imageUrl.trim() }),
+    };
+    const local = validate(data);
+    setErrors(local);
+    setFormError("");
+    if (Object.keys(local).length) return;
+
+    setLoading(true);
+    try {
+      await createRequest(data);
+      router.push("/mis-recuerdos?enviado=1");
+    } catch (err) {
+      if (err instanceof ApiError && err.fields) setErrors(err.fields);
+      else setFormError(err instanceof ApiError ? err.message : "No se pudo enviar. Intenta de nuevo.");
+      setLoading(false);
+    }
+  }
+
+  const known = [...new Set([...(meta.data?.participants ?? []), ...participants])];
+  const preview = form.imageUrl.trim();
+
+  return (
+    <form onSubmit={onSubmit} noValidate className="space-y-6">
+      <Field label="Título *" value={form.title} onChange={update("title")} error={errors.title} maxLength={150} />
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-sm font-medium">Tipo</span>
+          <select value={form.type} onChange={update("type")} className={`${control} border-line capitalize`}>
+            {TYPES.map((t) => (
+              <option key={t} value={t}>
+                {EXPERIENCE_TYPE_LABEL[t]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Field label="Fecha" type="date" value={form.date} onChange={update("date")} error={errors.date} />
+      </div>
+
+      <label className="block">
+        <span className="text-sm font-medium">Descripción *</span>
+        <textarea
+          rows={5}
+          value={form.description}
+          onChange={update("description")}
+          aria-invalid={errors.description ? true : undefined}
+          aria-describedby={errors.description ? "description-error" : undefined}
+          className={`${control} ${errors.description ? "border-danger" : "border-line"}`}
+        />
+        {errors.description && (
+          <span id="description-error" className="mt-1.5 block text-sm text-danger">
+            {errors.description}
+          </span>
+        )}
+      </label>
+
+      <fieldset>
+        <legend className="text-sm font-medium">Personas presentes</legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {known.map((name) => {
+            const on = participants.includes(name);
+            return (
+              <button
+                key={name}
+                type="button"
+                aria-pressed={on}
+                onClick={() => togglePerson(name)}
+                className={`rounded-full border px-3 py-1 text-sm ${on ? "border-accent bg-accent text-bg" : "border-line hover:border-accent"}`}
+              >
+                {name}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <label htmlFor="nueva-persona" className="sr-only">
+            Nueva persona
+          </label>
+          <input
+            id="nueva-persona"
+            value={newPerson}
+            onChange={(e) => setNewPerson(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addPerson();
+              }
+            }}
+            placeholder="Otra persona"
+            maxLength={100}
+            className="min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 py-2 outline-none focus:border-accent"
+          />
+          <Button type="button" variant="secondary" onClick={addPerson}>
+            Agregar
+          </Button>
+        </div>
+        {errors.participants && <p className="mt-1.5 text-sm text-danger">{errors.participants}</p>}
+      </fieldset>
+
+      <div>
+        <Field
+          label="URL de la imagen (opcional)"
+          type="url"
+          inputMode="url"
+          placeholder="https://"
+          value={form.imageUrl}
+          onChange={(e) => {
+            setPreviewFailed(false);
+            update("imageUrl")(e);
+          }}
+          error={errors.imageUrl}
+        />
+        {preview && /^https?:\/\//.test(preview) && (
+          <div className="mt-3 w-48 bg-paper p-2 shadow-[3px_3px_0_var(--line)]">
+            {previewFailed ? (
+              <p className="p-4 text-sm text-danger">No se pudo cargar esa imagen.</p>
+            ) : (
+              // Vista previa de una URL cualquiera: next/image no sirve para dominios desconocidos
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt="Vista previa" className="aspect-[4/3] w-full object-cover" onError={() => setPreviewFailed(true)} />
+            )}
+          </div>
+        )}
+      </div>
+
+      {formError && (
+        <p role="alert" className="rounded-lg border border-danger/40 px-3 py-2 text-sm text-danger">
+          {formError}
+        </p>
+      )}
+
+      <div className="flex items-center gap-4 border-t border-line pt-6">
+        <Button type="submit" loading={loading}>
+          {loading ? "Enviando…" : "Enviar propuesta"}
+        </Button>
+        <p className="text-sm text-muted">La reviso antes de que aparezca en el muro.</p>
+      </div>
+    </form>
+  );
+}

@@ -4,6 +4,7 @@ import type { CreateMemoryRequest, MemoryRequest, RequestStatus, ReviewedMemoryR
 export const requestsService = {
   create: (data: CreateMemoryRequest) => http.post<MemoryRequest>("/api/propuestas", data),
   mine: () => http.get<MemoryRequest[]>("/api/propuestas/mias"),
+  remove: (id: string) => http.delete(`/api/propuestas/${encodeURIComponent(id)}`),
   uploadImage: (id: string, file: File) => {
     const form = new FormData();
     form.append("image", file);

@@ -3,10 +3,16 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/src/features/common/components/Button";
+import { ConfirmDialog } from "@/src/features/common/components/ConfirmDialog";
 import { EmptyState, ErrorState } from "@/src/features/common/components/States";
+import { ApiError } from "@/src/features/common/domain/api";
+import { experiencesService } from "@/src/features/experiencias/services/experiences.service";
 import { formatDate } from "@/src/features/experiencias/domain/experience";
 import { useMyComments } from "@/src/features/interacciones/hooks/useComments";
+import type { MemoryRequest } from "../domain/memory-request";
 import { useMyRequests } from "../hooks/useRequests";
+import { requestsService } from "../services/requests.service";
 import { StatusBadge } from "./StatusBadge";
 
 type Tab = "propuestas" | "comentarios";
@@ -24,6 +30,27 @@ function ListLoading() {
 
 function Requests() {
   const { data, error, loading, retry } = useMyRequests();
+  const [toDelete, setToDelete] = useState<MemoryRequest | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  // Aprobada: ya es un recuerdo del muro y se borra esa experiencia (la API borra también la propuesta)
+  async function onDelete() {
+    if (!toDelete) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      if (toDelete.status === "aprobada" && toDelete.experienceId) await experiencesService.remove(toDelete.experienceId);
+      else await requestsService.remove(toDelete.id);
+      retry();
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : "No se pudo borrar. Intenta de nuevo.");
+    } finally {
+      setDeleting(false);
+      setToDelete(null);
+    }
+  }
+
   if (loading) return <ListLoading />;
   if (error) return <ErrorState error={error} onRetry={retry} />;
   if (!data?.length) {
@@ -36,25 +63,55 @@ function Requests() {
     );
   }
   return (
-    <ul className="divide-y divide-line border-y border-line">
-      {data.map((r) => (
-        <li key={r.id} className="flex flex-wrap items-center justify-between gap-4 py-4">
-          <div>
-            <p className="font-serif text-xl">
-              {r.status === "aprobada" && r.experienceId ? (
-                <Link href={`/muro/${r.experienceId}`} className="hover:text-accent hover:underline">
-                  {r.title}
-                </Link>
-              ) : (
-                r.title
-              )}
-            </p>
-            <p className="font-mono text-xs text-muted">enviada el {formatDate(r.createdAt)}</p>
-          </div>
-          <StatusBadge status={r.status} />
-        </li>
-      ))}
-    </ul>
+    <>
+      {deleteError && (
+        <p role="alert" className="mb-4 rounded-lg border border-danger/40 px-3 py-2 text-sm text-danger">
+          {deleteError}
+        </p>
+      )}
+      <ul className="divide-y divide-line border-y border-line">
+        {data.map((r) => (
+          <li key={r.id} className="flex flex-wrap items-center justify-between gap-4 py-4">
+            <div>
+              <p className="font-serif text-xl">
+                {r.status === "aprobada" && r.experienceId ? (
+                  <Link href={`/muro/${r.experienceId}`} className="hover:text-accent hover:underline">
+                    {r.title}
+                  </Link>
+                ) : (
+                  r.title
+                )}
+              </p>
+              <p className="font-mono text-xs text-muted">enviada el {formatDate(r.createdAt)}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <StatusBadge status={r.status} />
+              <Button
+                variant="secondary"
+                onClick={() => setToDelete(r)}
+                aria-label={`Borrar ${r.title}`}
+                className="!px-3 !py-1 text-sm hover:!border-danger hover:!text-danger"
+              >
+                Borrar
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <ConfirmDialog
+        open={toDelete !== null}
+        title="¿Borrar este recuerdo?"
+        message={
+          toDelete?.status === "aprobada"
+            ? `“${toDelete.title}” ya está en el muro. Se borrará del muro junto con su foto y sus comentarios. Esta acción no se puede deshacer.`
+            : `¿Borrar la propuesta “${toDelete?.title ?? ""}”? Esta acción no se puede deshacer.`
+        }
+        confirmLabel="Borrar"
+        loading={deleting}
+        onConfirm={onDelete}
+        onCancel={() => setToDelete(null)}
+      />
+    </>
   );
 }
 

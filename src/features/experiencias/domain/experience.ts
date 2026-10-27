@@ -28,7 +28,11 @@ export type ExperienceComment = {
   user: Pick<User, "id" | "name">;
 };
 
-export type ExperienceDetail = Experience & { interactions: ExperienceComment[] };
+export type ExperienceDetail = Experience & {
+  interactions: ExperienceComment[];
+  /** Quien propuso el recuerdo; null si lo creó el admin */
+  authorId: string | null;
+};
 
 export type ExperienceFilters = {
   page?: number;

@@ -1,8 +1,21 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ExperienceDetailView } from "@/src/features/experiencias/components/ExperienceDetailView";
+import { experiencesService } from "@/src/features/experiencias/services/experiences.service";
 
 type Params = Promise<{ id: string }>;
+
+// Título de la pestaña con el nombre del recuerdo. Si la API falla (o está dormida), queda uno genérico.
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const experience = await experiencesService.getById(id);
+    return { title: `${experience.title} · Mayday`, description: experience.description.slice(0, 160) };
+  } catch {
+    return { title: "Recuerdo · Mayday" };
+  }
+}
 
 // El id solo se conoce al pedir la página, por eso va dentro de Suspense
 async function Detail({ params }: { params: Params }) {

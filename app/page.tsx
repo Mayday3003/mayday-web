@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { CameraHero } from "@/src/features/common/components/CameraHero";
@@ -10,6 +11,11 @@ const interests = [
   { title: "Tiburones", note: "buceo", img: "/images/tiburones.jpg", alt: "Un banco de tiburones martillo", tilt: "rotate-[1deg] sm:mt-6" },
   { title: "Amor", note: "en todas partes", img: "/images/amor.jpg", alt: "Dos manos entrelazadas", tilt: "-rotate-[0.5deg]" },
 ];
+
+export const metadata: Metadata = {
+  title: "Mayday · Lo que amo (con los que amo)",
+  description: "Física, tiburones y recuerdos con las personas que amo.",
+};
 
 export default function Home() {
   return (

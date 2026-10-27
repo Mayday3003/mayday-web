@@ -35,7 +35,7 @@ export function proxy(request: NextRequest) {
   if (PRIVATE.includes(pathname) && !role) return toLogin();
   if (GUEST_ONLY.includes(pathname) && role) {
     const next = request.nextUrl.searchParams.get("next");
-    return redirect(next?.startsWith("/") && !next.startsWith("//") ? next : "/muro");
+    return redirect(next?.startsWith("/") && !next.startsWith("//") ? next : "/");
   }
 
   return NextResponse.next();

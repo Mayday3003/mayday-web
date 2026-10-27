@@ -19,7 +19,7 @@ function validate(email: string, password: string): FieldErrors {
 
 /** Solo se aceptan rutas internas en ?next= para no redirigir a otro sitio */
 export function safeNext(next: string | null) {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/muro";
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }
 
 export function LoginForm() {

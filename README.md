@@ -80,7 +80,7 @@ Cada feature separa `domain/` (tipos), `services/` (llamadas a la API), `hooks/`
 
 Hay dos capas, y ninguna de las dos es la seguridad real:
 
-1. **`proxy.ts` (servidor):** lee la cookie `mayday_token` y redirige antes de pintar la página (`/admin` sin rol admin → `/`; rutas privadas sin sesión → `/login?next=…`; `/login` con sesión → `/muro`). Lee el rol del payload del JWT **sin verificar la firma**, porque el secreto solo existe en la API.
+1. **`proxy.ts` (servidor):** lee la cookie `mayday_token` y redirige antes de pintar la página (`/admin` sin rol admin → `/`; rutas privadas sin sesión → `/login?next=…`; `/login` y `/registro` con sesión → `/`). Lee el rol del payload del JWT **sin verificar la firma**, porque el secreto solo existe en la API.
 2. **Guards en el cliente** (`PrivateRoute`, `AdminRoute`, `GuestRoute`): hacen lo mismo cuando se navega dentro de la app, y no muestran el contenido hasta saber si hay sesión.
 
 La seguridad real está en la API: cualquier petición sin token responde **401** y con un rol sin permiso responde **403**, aunque alguien se salte el frontend.

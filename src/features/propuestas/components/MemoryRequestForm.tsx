@@ -6,11 +6,13 @@ import { Button } from "@/src/features/common/components/Button";
 import { Field } from "@/src/features/common/components/Field";
 import { ApiError, type FieldErrors } from "@/src/features/common/domain/api";
 import { EXPERIENCE_TYPE_LABEL, type ExperienceType } from "@/src/features/experiencias/domain/experience";
+import { ImageUploader } from "@/src/features/experiencias/components/ImageUploader";
 import { useExperienceMeta } from "@/src/features/experiencias/hooks/useExperiences";
 import type { CreateMemoryRequest } from "../domain/memory-request";
 import { useCreateRequest } from "../hooks/useRequests";
 
 const TYPES = Object.keys(EXPERIENCE_TYPE_LABEL) as ExperienceType[];
+type ImageSource = "archivo" | "enlace";
 const control =
   "mt-1.5 w-full rounded-lg border bg-bg px-3 py-2.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent";
 
@@ -35,6 +37,8 @@ export function MemoryRequestForm() {
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
   const [previewFailed, setPreviewFailed] = useState(false);
+  const [imageSource, setImageSource] = useState<ImageSource>("archivo");
+  const [file, setFile] = useState<File | null>(null);
 
   function update(field: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -59,7 +63,8 @@ export function MemoryRequestForm() {
       description: form.description.trim(),
       participants,
       ...(form.date && { date: form.date }),
-      ...(form.imageUrl.trim() && { imageUrl: form.imageUrl.trim() }),
+      // Solo cuenta la opción elegida: el archivo se sube aparte, después de crear la propuesta
+      ...(imageSource === "enlace" && form.imageUrl.trim() && { imageUrl: form.imageUrl.trim() }),
     };
     const local = validate(data);
     setErrors(local);
@@ -68,8 +73,8 @@ export function MemoryRequestForm() {
 
     setLoading(true);
     try {
-      await createRequest(data);
-      router.push("/mis-recuerdos?enviado=1");
+      const { imageFailed } = await createRequest(data, imageSource === "archivo" ? file : null);
+      router.push(`/mis-recuerdos?enviado=1${imageFailed ? "&foto=fallo" : ""}`);
     } catch (err) {
       if (err instanceof ApiError && err.fields) setErrors(err.fields);
       else setFormError(err instanceof ApiError ? err.message : "No se pudo enviar. Intenta de nuevo.");
@@ -158,31 +163,53 @@ export function MemoryRequestForm() {
         {errors.participants && <p className="mt-1.5 text-sm text-danger">{errors.participants}</p>}
       </fieldset>
 
-      <div>
-        <Field
-          label="URL de la imagen (opcional)"
-          type="url"
-          inputMode="url"
-          placeholder="https://"
-          value={form.imageUrl}
-          onChange={(e) => {
-            setPreviewFailed(false);
-            update("imageUrl")(e);
-          }}
-          error={errors.imageUrl}
-        />
-        {preview && /^https?:\/\//.test(preview) && (
-          <div className="mt-3 w-48 bg-paper p-2 shadow-[3px_3px_0_var(--line)]">
-            {previewFailed ? (
-              <p className="p-4 text-sm text-danger">No se pudo cargar esa imagen.</p>
-            ) : (
-              // Vista previa de una URL cualquiera: next/image no sirve para dominios desconocidos
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="Vista previa" className="aspect-[4/3] w-full object-cover" onError={() => setPreviewFailed(true)} />
+      <fieldset>
+        <legend className="text-sm font-medium">Foto (opcional)</legend>
+        <div role="radiogroup" className="mt-2 mb-4 flex gap-2">
+          {(["archivo", "enlace"] as ImageSource[]).map((source) => (
+            <button
+              key={source}
+              type="button"
+              role="radio"
+              aria-checked={imageSource === source}
+              onClick={() => setImageSource(source)}
+              className={`rounded-full border px-3 py-1 text-sm ${imageSource === source ? "border-accent bg-accent text-bg" : "border-line hover:border-accent"}`}
+            >
+              {source === "archivo" ? "Desde mi dispositivo" : "Con un enlace"}
+            </button>
+          ))}
+        </div>
+
+        {imageSource === "archivo" ? (
+          <ImageUploader currentUrl={null} error={errors.image} onChange={setFile} />
+        ) : (
+          <div>
+            <Field
+              label="URL de la imagen"
+              type="url"
+              inputMode="url"
+              placeholder="https://"
+              value={form.imageUrl}
+              onChange={(e) => {
+                setPreviewFailed(false);
+                update("imageUrl")(e);
+              }}
+              error={errors.imageUrl}
+            />
+            {preview && /^https?:\/\//.test(preview) && (
+              <div className="mt-3 w-48 bg-paper p-2 shadow-[3px_3px_0_var(--line)]">
+                {previewFailed ? (
+                  <p className="p-4 text-sm text-danger">No se pudo cargar esa imagen.</p>
+                ) : (
+                  // Vista previa de una URL cualquiera: next/image no sirve para dominios desconocidos
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={preview} alt="Vista previa" className="aspect-[4/3] w-full object-cover" onError={() => setPreviewFailed(true)} />
+                )}
+              </div>
             )}
           </div>
         )}
-      </div>
+      </fieldset>
 
       {formError && (
         <p role="alert" className="rounded-lg border border-danger/40 px-3 py-2 text-sm text-danger">

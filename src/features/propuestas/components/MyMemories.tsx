@@ -83,13 +83,20 @@ function Comments() {
 
 export function MyMemories() {
   const [tab, setTab] = useState<Tab>("propuestas");
-  const sent = useSearchParams().get("enviado");
+  const params = useSearchParams();
+  const sent = params.get("enviado");
+  const photoFailed = params.get("foto") === "fallo";
 
   return (
     <div>
       {sent && (
         <p role="status" className="mb-8 rounded-lg border border-ok/50 px-4 py-3 text-ok">
           Tu recuerdo quedó pendiente de aprobación.
+        </p>
+      )}
+      {sent && photoFailed && (
+        <p role="alert" className="mb-8 rounded-lg border border-danger/40 px-4 py-3 text-danger">
+          La foto no se pudo subir, pero el recuerdo sí se envió sin ella.
         </p>
       )}
       <div role="tablist" className="flex gap-6 border-b border-line font-serif text-lg">

@@ -2,56 +2,70 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ButtonLink } from "@/src/features/common/components/ButtonLink";
 import { useAuth } from "../hooks/useAuth";
 
-const linkClass = "underline-offset-[5px] hover:text-accent hover:underline";
+const linkClass = "underline-offset-[4px] hover:text-accent hover:underline";
 
-/** Parte de la navbar que cambia según la sesión */
-export function SessionNav() {
+/**
+ * Franja superior de la navbar con todo lo de la cuenta. Va separada de la navegación
+ * del sitio para que con sesión no se amontonen nueve elementos en una sola fila.
+ * `children` es lo que siempre va al final a la derecha (el cambio de tema).
+ */
+export function SessionNav({ children }: { children: React.ReactNode }) {
   const { status, user, isAdmin, logout } = useAuth();
   const router = useRouter();
 
-  // Mientras se lee la sesión se reserva el espacio para que la navbar no salte
-  if (status === "loading") return <span className="h-8 w-40" aria-hidden />;
+  let greeting: React.ReactNode = null;
+  let actions: React.ReactNode = null;
 
-  if (status === "guest" || !user) {
-    return (
-      <div className="flex items-center gap-5">
+  if (status === "authenticated" && user) {
+    greeting = <span className="font-hand text-lg leading-none">hola, {user.name.split(" ")[0]}</span>;
+    actions = (
+      <>
+        <Link href="/mis-recuerdos" className={linkClass}>
+          Mis recuerdos
+        </Link>
+        {isAdmin && (
+          <Link href="/admin" className={linkClass}>
+            {/* En móvil no cabe la palabra completa junto a lo demás */}
+            <span className="sm:hidden">Admin</span>
+            <span className="hidden sm:inline">Administración</span>
+          </Link>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            logout();
+            router.push("/");
+          }}
+          className="underline-offset-[4px] hover:text-danger hover:underline"
+        >
+          Salir
+        </button>
+      </>
+    );
+  } else if (status === "guest") {
+    actions = (
+      <>
         <Link href="/login" className={linkClass}>
           Ingresar
         </Link>
-        <ButtonLink href="/registro" variant="secondary" className="px-3 py-1.5 text-sm">
+        <Link href="/registro" className={linkClass}>
           Crear cuenta
-        </ButtonLink>
-      </div>
+        </Link>
+      </>
     );
   }
+  // Mientras se lee la sesión ("loading") solo se ve el cambio de tema; la franja mide lo mismo
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-      <Link href="/mis-recuerdos" className={linkClass}>
-        Mis recuerdos
-      </Link>
-      {isAdmin && (
-        <Link href="/admin" className={linkClass}>
-          Administración
-        </Link>
-      )}
-      <span className="font-hand text-xl text-muted">hola, {user.name.split(" ")[0]}</span>
-      <button
-        type="button"
-        onClick={() => {
-          logout();
-          router.push("/");
-        }}
-        className="text-sm text-muted underline underline-offset-[3px] hover:text-danger"
-      >
-        Salir
-      </button>
-      <ButtonLink href="/muro/nuevo" className="px-3 py-1.5 text-sm">
-        + Añadir recuerdo
-      </ButtonLink>
+    <div className="mx-auto flex min-h-10 max-w-[1080px] items-center justify-between gap-4 px-4 text-[13px] text-muted sm:px-6">
+      <div className="min-w-0 truncate">{greeting}</div>
+      <div className="flex shrink-0 items-center gap-4 sm:gap-5">
+        {actions}
+        {actions && <span aria-hidden className="h-3 w-px bg-line" />}
+        {children}
+      </div>
     </div>
   );
 }

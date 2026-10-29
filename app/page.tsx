@@ -43,8 +43,18 @@ export default function Home() {
             </p>
           </div>
         </section>
+      </div>
 
-        <section className="border-t border-line py-16">
+      <section className="border-y border-line bg-surface py-16">
+        <div className="mx-auto max-w-[1080px] px-4 sm:px-6">
+          <h2 className="mb-2 font-serif text-[28px] font-medium">Canciones</h2>
+          <p className="mb-10 text-muted">Las que vuelvo a poner sin darme cuenta.</p>
+          <Tocadiscos />
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-[1080px] px-4 sm:px-6">
+        <section className="py-16">
           <h2 className="font-serif text-[28px] font-medium">Lo que de verdad me mueve</h2>
           <ul className="mt-10 grid gap-10 sm:grid-cols-3 sm:gap-8">
             {interests.map((item) => (
@@ -78,13 +88,6 @@ export default function Home() {
         </section>
       </div>
 
-      <section className="border-y border-line bg-surface py-16">
-        <div className="mx-auto max-w-[1080px] px-4 sm:px-6">
-          <h2 className="mb-2 font-serif text-[28px] font-medium">Canciones</h2>
-          <p className="mb-10 text-muted">Las que vuelvo a poner sin darme cuenta.</p>
-          <Tocadiscos />
-        </div>
-      </section>
     </>
   );
 }

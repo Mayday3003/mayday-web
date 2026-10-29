@@ -19,19 +19,10 @@ export function SessionNav({ children }: { children: React.ReactNode }) {
   let actions: React.ReactNode = null;
 
   if (status === "authenticated" && user) {
-    greeting = <span className="font-hand text-lg leading-none">hola, {user.name.split(" ")[0]}</span>;
-    actions = (
+    // Saludo y salida juntos a la izquierda: lo de la cuenta queda en un solo grupo
+    greeting = (
       <>
-        <Link href="/mis-recuerdos" className={linkClass}>
-          Mis recuerdos
-        </Link>
-        {isAdmin && (
-          <Link href="/admin" className={linkClass}>
-            {/* En móvil no cabe la palabra completa junto a lo demás */}
-            <span className="sm:hidden">Admin</span>
-            <span className="hidden sm:inline">Administración</span>
-          </Link>
-        )}
+        <span className="min-w-0 truncate font-hand text-lg leading-none">hola, {user.name.split(" ")[0]}</span>
         <button
           type="button"
           onClick={() => {
@@ -40,7 +31,7 @@ export function SessionNav({ children }: { children: React.ReactNode }) {
           }}
           aria-label="Salir"
           title="Salir"
-          className="-m-1 rounded p-1 hover:text-danger"
+          className="-m-1 shrink-0 rounded p-1 hover:text-danger"
         >
           {/* Puerta con flecha hacia afuera: el nombre accesible lo da aria-label */}
           <svg viewBox="0 0 24 24" aria-hidden className="size-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -49,6 +40,20 @@ export function SessionNav({ children }: { children: React.ReactNode }) {
             <path d="M21 12H9" />
           </svg>
         </button>
+      </>
+    );
+    actions = (
+      <>
+        <Link href="/mis-recuerdos" className={linkClass}>
+          Mis recuerditos
+        </Link>
+        {isAdmin && (
+          <Link href="/admin" className={linkClass}>
+            {/* En móvil no cabe la palabra completa junto a lo demás */}
+            <span className="sm:hidden">Admin</span>
+            <span className="hidden sm:inline">Administración</span>
+          </Link>
+        )}
       </>
     );
   } else if (status === "guest") {
@@ -67,7 +72,7 @@ export function SessionNav({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="mx-auto flex min-h-10 max-w-[1080px] items-center justify-between gap-4 px-4 text-[13px] text-muted sm:px-6">
-      <div className="min-w-0 truncate">{greeting}</div>
+      <div className="flex min-w-0 items-center gap-3">{greeting}</div>
       <div className="flex shrink-0 items-center gap-4 sm:gap-5">
         {actions}
         {actions && <span aria-hidden className="h-3 w-px bg-line" />}

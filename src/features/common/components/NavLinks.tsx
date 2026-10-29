@@ -26,7 +26,7 @@ export function NavList({ pathname }: { pathname: string | null }) {
               <Link
                 href={link.href}
                 aria-current={active ? "page" : undefined}
-                className={`underline-offset-[5px] hover:text-accent hover:underline ${active ? "text-accent underline decoration-1" : ""}`}
+                className={`underline-offset-[5px] hover:text-accent hover:underline ${active ? "text-accent underline decoration-1" : "text-muted"}`}
               >
                 {link.label}
               </Link>

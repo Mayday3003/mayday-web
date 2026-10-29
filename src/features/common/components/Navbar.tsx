@@ -7,12 +7,12 @@ import { ThemeToggle } from "./ThemeToggle";
 export function Navbar() {
   return (
     <header className="border-b border-line">
-      <div className="border-b border-line/60">
+      <div className="border-b border-line/60 bg-surface/60">
         <SessionNav>
           <ThemeToggle />
         </SessionNav>
       </div>
-      <div className="mx-auto flex max-w-[1080px] flex-col items-center gap-3 px-4 pt-6 pb-5 sm:px-6">
+      <div className="mx-auto flex max-w-[1080px] flex-col items-center gap-2 px-4 pt-4 pb-4 sm:gap-3 sm:pt-5 sm:px-6">
         <Link href="/" className="font-serif text-4xl italic">
           Mayday <span className="text-accent not-italic">❀</span>
         </Link>

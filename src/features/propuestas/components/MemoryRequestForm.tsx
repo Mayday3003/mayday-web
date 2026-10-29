@@ -17,10 +17,12 @@ const control =
   "mt-1.5 w-full rounded-lg border bg-bg px-3 py-2.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent";
 
 // Mismas reglas que el DTO de propuestas en la API
-function validate(data: CreateMemoryRequest): FieldErrors {
+// La foto es obligatoria: o un archivo o un enlace
+function validate(data: CreateMemoryRequest, file: File | null, source: ImageSource): FieldErrors {
   const errors: FieldErrors = {};
-  if (data.title.length < 3 || data.title.length > 150) errors.title = "El título debe tener entre 3 y 150 caracteres";
-  if (data.description.length < 10) errors.description = "La descripción debe tener al menos 10 caracteres";
+  if (data.title.length > 150) errors.title = "El título no puede pasar de 150 caracteres";
+  if (source === "archivo" && !file) errors.image = "Sube una foto del recuerdo";
+  if (source === "enlace" && !data.imageUrl) errors.imageUrl = "Pega el enlace de la foto";
   if (data.imageUrl && !/^https?:\/\/\S+$/.test(data.imageUrl)) errors.imageUrl = "Escribe una URL que empiece por http:// o https://";
   if (data.date && data.date > new Date().toISOString().slice(0, 10)) errors.date = "La fecha no puede estar en el futuro";
   return errors;
@@ -66,7 +68,7 @@ export function MemoryRequestForm() {
       // Solo cuenta la opción elegida: el archivo se sube aparte, después de crear la propuesta
       ...(imageSource === "enlace" && form.imageUrl.trim() && { imageUrl: form.imageUrl.trim() }),
     };
-    const local = validate(data);
+    const local = validate(data, file, imageSource);
     setErrors(local);
     setFormError("");
     if (Object.keys(local).length) return;
@@ -87,7 +89,7 @@ export function MemoryRequestForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-6">
-      <Field label="Título *" value={form.title} onChange={update("title")} error={errors.title} maxLength={150} />
+      <Field label="Título (opcional)" value={form.title} onChange={update("title")} error={errors.title} maxLength={150} />
 
       <div className="grid gap-6 sm:grid-cols-2">
         <label className="block">
@@ -104,7 +106,7 @@ export function MemoryRequestForm() {
       </div>
 
       <label className="block">
-        <span className="text-sm font-medium">Descripción *</span>
+        <span className="text-sm font-medium">Descripción (opcional)</span>
         <textarea
           rows={5}
           value={form.description}
@@ -164,7 +166,7 @@ export function MemoryRequestForm() {
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-medium">Foto (opcional)</legend>
+        <legend className="text-sm font-medium">Foto *</legend>
         <div role="radiogroup" className="mt-2 mb-4 flex gap-2">
           {(["archivo", "enlace"] as ImageSource[]).map((source) => (
             <button

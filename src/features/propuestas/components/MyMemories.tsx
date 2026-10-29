@@ -4,15 +4,20 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/src/features/common/components/Button";
+import { ButtonLink } from "@/src/features/common/components/ButtonLink";
 import { ConfirmDialog } from "@/src/features/common/components/ConfirmDialog";
+import { Modal } from "@/src/features/common/components/Modal";
 import { EmptyState, ErrorState } from "@/src/features/common/components/States";
 import { ApiError } from "@/src/features/common/domain/api";
+import { ExperienceForm } from "@/src/features/experiencias/components/ExperienceForm";
+import type { ExperienceDetail } from "@/src/features/experiencias/domain/experience";
 import { experiencesService } from "@/src/features/experiencias/services/experiences.service";
 import { formatDate } from "@/src/features/experiencias/domain/experience";
 import { useMyComments } from "@/src/features/interacciones/hooks/useComments";
 import type { MemoryRequest } from "../domain/memory-request";
 import { useMyRequests } from "../hooks/useRequests";
 import { requestsService } from "../services/requests.service";
+import { MemoryRequestForm } from "./MemoryRequestForm";
 import { StatusBadge } from "./StatusBadge";
 
 type Tab = "propuestas" | "comentarios";
@@ -33,6 +38,24 @@ function Requests() {
   const [toDelete, setToDelete] = useState<MemoryRequest | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [toEdit, setToEdit] = useState<ExperienceDetail | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState<string | null>(null);
+  const [requestToEdit, setRequestToEdit] = useState<MemoryRequest | null>(null);
+
+  // Pendiente: se edita la propuesta. Aprobada: ya es un recuerdo del muro y se edita esa experiencia
+  async function onEdit(request: MemoryRequest) {
+    if (request.status === "pendiente") return setRequestToEdit(request);
+    if (!request.experienceId) return;
+    setLoadingEdit(request.id);
+    setDeleteError("");
+    try {
+      setToEdit(await experiencesService.getById(request.experienceId));
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : "No se pudo abrir el recuerdo. Intenta de nuevo.");
+    } finally {
+      setLoadingEdit(null);
+    }
+  }
 
   // Aprobada: ya es un recuerdo del muro y se borra esa experiencia (la API borra también la propuesta)
   async function onDelete() {
@@ -86,6 +109,17 @@ function Requests() {
             </div>
             <div className="flex items-center gap-4">
               <StatusBadge status={r.status} />
+              {(r.status === "pendiente" || (r.status === "aprobada" && r.experienceId)) && (
+                <Button
+                  variant="secondary"
+                  onClick={() => onEdit(r)}
+                  loading={loadingEdit === r.id}
+                  aria-label={`Editar ${r.title}`}
+                  className="!px-3 !py-1 text-sm"
+                >
+                  Editar
+                </Button>
+              )}
               <Button
                 variant="secondary"
                 onClick={() => setToDelete(r)}
@@ -98,6 +132,34 @@ function Requests() {
           </li>
         ))}
       </ul>
+      <Modal open={toEdit !== null} title="Editar recuerdo" onClose={() => setToEdit(null)}>
+        {toEdit && (
+          <ExperienceForm
+            key={toEdit.id}
+            experience={toEdit}
+            onSaved={(_, warning) => {
+              setToEdit(null);
+              setDeleteError(warning ?? "");
+              retry();
+            }}
+            onCancel={() => setToEdit(null)}
+          />
+        )}
+      </Modal>
+      <Modal open={requestToEdit !== null} title="Editar propuesta" onClose={() => setRequestToEdit(null)}>
+        {requestToEdit && (
+          <MemoryRequestForm
+            key={requestToEdit.id}
+            request={requestToEdit}
+            onSaved={(photoFailed) => {
+              setRequestToEdit(null);
+              setDeleteError(photoFailed ? "Se guardaron los cambios, pero la foto no se pudo subir." : "");
+              retry();
+            }}
+            onCancel={() => setRequestToEdit(null)}
+          />
+        )}
+      </Modal>
       <ConfirmDialog
         open={toDelete !== null}
         title="¿Borrar este recuerdo?"
@@ -156,6 +218,9 @@ export function MyMemories() {
           La foto no se pudo subir, pero el recuerdo sí se envió sin ella.
         </p>
       )}
+      <div className="mb-8">
+        <ButtonLink href="/muro/nuevo">{sent ? "Agregar otro recuerdo" : "Agregar recuerdo"}</ButtonLink>
+      </div>
       <div role="tablist" className="flex gap-6 border-b border-line font-serif text-lg">
         {(["propuestas", "comentarios"] as Tab[]).map((t) => (
           <button

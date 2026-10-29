@@ -8,8 +8,8 @@ import { ApiError, type FieldErrors } from "@/src/features/common/domain/api";
 import { EXPERIENCE_TYPE_LABEL, type ExperienceType } from "@/src/features/experiencias/domain/experience";
 import { ImageUploader } from "@/src/features/experiencias/components/ImageUploader";
 import { useExperienceMeta } from "@/src/features/experiencias/hooks/useExperiences";
-import type { CreateMemoryRequest } from "../domain/memory-request";
-import { useCreateRequest } from "../hooks/useRequests";
+import type { CreateMemoryRequest, MemoryRequest } from "../domain/memory-request";
+import { useCreateRequest, useUpdateRequest } from "../hooks/useRequests";
 
 const TYPES = Object.keys(EXPERIENCE_TYPE_LABEL) as ExperienceType[];
 type ImageSource = "archivo" | "enlace";
@@ -17,23 +17,37 @@ const control =
   "mt-1.5 w-full rounded-lg border bg-bg px-3 py-2.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent";
 
 // Mismas reglas que el DTO de propuestas en la API
-// La foto es obligatoria: o un archivo o un enlace
-function validate(data: CreateMemoryRequest, file: File | null, source: ImageSource): FieldErrors {
+// La foto es obligatoria: o un archivo o un enlace. Al editar vale la que ya tenía
+function validate(data: CreateMemoryRequest, file: File | null, source: ImageSource, hasImage: boolean): FieldErrors {
   const errors: FieldErrors = {};
   if (data.title.length > 150) errors.title = "El título no puede pasar de 150 caracteres";
-  if (source === "archivo" && !file) errors.image = "Sube una foto del recuerdo";
+  if (source === "archivo" && !file && !hasImage) errors.image = "Sube una foto del recuerdo";
   if (source === "enlace" && !data.imageUrl) errors.imageUrl = "Pega el enlace de la foto";
   if (data.imageUrl && !/^https?:\/\/\S+$/.test(data.imageUrl)) errors.imageUrl = "Escribe una URL que empiece por http:// o https://";
   if (data.date && data.date > new Date().toISOString().slice(0, 10)) errors.date = "La fecha no puede estar en el futuro";
   return errors;
 }
 
-export function MemoryRequestForm() {
+type MemoryRequestFormProps = {
+  /** Sin propuesta es "crear"; con ella, editar esa propuesta pendiente */
+  request?: MemoryRequest;
+  onSaved?: (photoFailed: boolean) => void;
+  onCancel?: () => void;
+};
+
+export function MemoryRequestForm({ request, onSaved, onCancel }: MemoryRequestFormProps) {
   const router = useRouter();
   const createRequest = useCreateRequest();
+  const updateRequest = useUpdateRequest(request?.id ?? "");
   const meta = useExperienceMeta();
-  const [form, setForm] = useState({ title: "", type: "viaje" as ExperienceType, description: "", date: "", imageUrl: "" });
-  const [participants, setParticipants] = useState<string[]>([]);
+  const [form, setForm] = useState({
+    title: request?.title ?? "",
+    type: request?.type ?? ("viaje" as ExperienceType),
+    description: request?.description ?? "",
+    date: request?.date?.slice(0, 10) ?? "",
+    imageUrl: "",
+  });
+  const [participants, setParticipants] = useState<string[]>(request?.participants ?? []);
   const [newPerson, setNewPerson] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
@@ -68,14 +82,19 @@ export function MemoryRequestForm() {
       // Solo cuenta la opción elegida: el archivo se sube aparte, después de crear la propuesta
       ...(imageSource === "enlace" && form.imageUrl.trim() && { imageUrl: form.imageUrl.trim() }),
     };
-    const local = validate(data, file, imageSource);
+    const local = validate(data, file, imageSource, !!request?.imageUrl);
     setErrors(local);
     setFormError("");
     if (Object.keys(local).length) return;
 
     setLoading(true);
     try {
-      const { imageFailed } = await createRequest(data, imageSource === "archivo" ? file : null);
+      const { imageFailed } = await (request ? updateRequest : createRequest)(data, imageSource === "archivo" ? file : null);
+      if (onSaved) {
+        onSaved(imageFailed);
+        setLoading(false);
+        return;
+      }
       router.push(`/mis-recuerdos?enviado=1${imageFailed ? "&foto=fallo" : ""}`);
     } catch (err) {
       if (err instanceof ApiError && err.fields) setErrors(err.fields);
@@ -88,7 +107,15 @@ export function MemoryRequestForm() {
   const preview = form.imageUrl.trim();
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-6">
+    <form
+      onSubmit={onSubmit}
+      // Enter en un campo de texto enviaría el formulario a medio llenar: solo se envía con el botón
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
+      }}
+      noValidate
+      className="space-y-6"
+    >
       <Field label="Título (opcional)" value={form.title} onChange={update("title")} error={errors.title} maxLength={150} />
 
       <div className="grid gap-6 sm:grid-cols-2">
@@ -183,7 +210,7 @@ export function MemoryRequestForm() {
         </div>
 
         {imageSource === "archivo" ? (
-          <ImageUploader currentUrl={null} error={errors.image} onChange={setFile} />
+          <ImageUploader currentUrl={request?.imageUrl ?? null} error={errors.image} onChange={setFile} />
         ) : (
           <div>
             <Field
@@ -221,9 +248,15 @@ export function MemoryRequestForm() {
 
       <div className="flex items-center gap-4 border-t border-line pt-6">
         <Button type="submit" loading={loading}>
-          {loading ? "Enviando…" : "Enviar propuesta"}
+          {request ? (loading ? "Guardando…" : "Guardar cambios") : loading ? "Enviando…" : "Enviar propuesta"}
         </Button>
-        <p className="text-sm text-muted">La reviso antes de que aparezca en el muro.</p>
+        {onCancel ? (
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>
+            Cancelar
+          </Button>
+        ) : (
+          <p className="text-sm text-muted">La reviso antes de que aparezca en el muro.</p>
+        )}
       </div>
     </form>
   );

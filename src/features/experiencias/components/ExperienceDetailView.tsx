@@ -6,12 +6,14 @@ import { useState } from "react";
 import { useAuth } from "@/src/features/auth/hooks/useAuth";
 import { Button } from "@/src/features/common/components/Button";
 import { ConfirmDialog } from "@/src/features/common/components/ConfirmDialog";
+import { Modal } from "@/src/features/common/components/Modal";
 import { ErrorState } from "@/src/features/common/components/States";
 import { ApiError } from "@/src/features/common/domain/api";
 import { CommentForm } from "@/src/features/interacciones/components/CommentForm";
 import { EXPERIENCE_TYPE_LABEL, formatDate } from "../domain/experience";
 import { useExperience } from "../hooks/useExperiences";
 import { experiencesService } from "../services/experiences.service";
+import { ExperienceForm } from "./ExperienceForm";
 import { ExperiencePhoto } from "./ExperiencePhoto";
 
 export function ExperienceDetailView({ id }: { id: string }) {
@@ -21,6 +23,8 @@ export function ExperienceDetailView({ id }: { id: string }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [saveWarning, setSaveWarning] = useState("");
 
   async function onDelete() {
     setDeleting(true);
@@ -50,7 +54,7 @@ export function ExperienceDetailView({ id }: { id: string }) {
 
   const date = formatDate(data.date);
   // Solo es una ayuda visual: la API vuelve a revisar el permiso y responde 403 si no corresponde
-  const canDelete = isAdmin || (!!user && user.id === data.authorId);
+  const canManage = isAdmin || (!!user && user.id === data.authorId);
 
   return (
     <article>
@@ -73,16 +77,33 @@ export function ExperienceDetailView({ id }: { id: string }) {
 
       <p className="mt-6 max-w-[65ch] text-lg whitespace-pre-line">{data.description}</p>
 
-      {canDelete && (
+      {canManage && (
         <div className="mt-8">
-          <Button variant="secondary" onClick={() => setConfirming(true)} className="hover:!border-danger hover:!text-danger">
-            Borrar recuerdo
-          </Button>
-          {deleteError && (
+          <div className="flex flex-wrap gap-3">
+            <Button variant="secondary" onClick={() => setEditing(true)}>
+              Editar recuerdo
+            </Button>
+            <Button variant="secondary" onClick={() => setConfirming(true)} className="hover:!border-danger hover:!text-danger">
+              Borrar recuerdo
+            </Button>
+          </div>
+          {(deleteError || saveWarning) && (
             <p role="alert" className="mt-3 text-sm text-danger">
-              {deleteError}
+              {deleteError || saveWarning}
             </p>
           )}
+          <Modal open={editing} title="Editar recuerdo" onClose={() => setEditing(false)}>
+            <ExperienceForm
+              key={data.updatedAt}
+              experience={data}
+              onSaved={(_, warning) => {
+                setEditing(false);
+                setSaveWarning(warning ?? "");
+                retry();
+              }}
+              onCancel={() => setEditing(false)}
+            />
+          </Modal>
           <ConfirmDialog
             open={confirming}
             title="¿Borrar este recuerdo?"

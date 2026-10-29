@@ -28,9 +28,11 @@ export function ExperienceCard({ experience }: { experience: Experience }) {
           {EXPERIENCE_TYPE_LABEL[experience.type]}
           {date && ` — ${date}`}
         </p>
-        <h3 className="mt-1 font-serif text-xl leading-snug group-hover:underline group-hover:underline-offset-[3px]">
-          {title}
-        </h3>
+        {experience.title && (
+          <h3 className="mt-1 font-serif text-xl leading-snug group-hover:underline group-hover:underline-offset-[3px]">
+            {experience.title}
+          </h3>
+        )}
         {experience.participants.length > 0 && (
           <p className="mt-1 font-hand text-lg text-[#5a768c]">con {experience.participants.join(", ")}</p>
         )}

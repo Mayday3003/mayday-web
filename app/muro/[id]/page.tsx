@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BackToWall } from "@/src/features/experiencias/components/BackToWall";
 import { ExperienceDetailView } from "@/src/features/experiencias/components/ExperienceDetailView";
-import { displayTitle } from "@/src/features/experiencias/domain/experience";
 import { experiencesService } from "@/src/features/experiencias/services/experiences.service";
 
 type Params = Promise<{ id: string }>;
@@ -12,7 +11,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { id } = await params;
   try {
     const experience = await experiencesService.getById(id);
-    return { title: `${displayTitle(experience)} · Mayday`, description: experience.description.slice(0, 160) };
+    return { title: experience.title ? `${experience.title} · Mayday` : "Recuerdo · Mayday", description: experience.description.slice(0, 160) };
   } catch {
     return { title: "Recuerdo · Mayday" };
   }

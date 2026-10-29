@@ -11,7 +11,7 @@ import { useToast } from "@/src/features/common/components/Toast";
 import { ErrorState } from "@/src/features/common/components/States";
 import { ApiError } from "@/src/features/common/domain/api";
 import { CommentForm } from "@/src/features/interacciones/components/CommentForm";
-import { EXPERIENCE_TYPE_LABEL, displayTitle, formatDate } from "../domain/experience";
+import { EXPERIENCE_TYPE_LABEL, displayTitle, formatDate, quoted } from "../domain/experience";
 import { useExperience } from "../hooks/useExperiences";
 import { experiencesService } from "../services/experiences.service";
 import { ExperienceForm } from "./ExperienceForm";
@@ -73,7 +73,8 @@ export function ExperienceDetailView({ id }: { id: string }) {
           <span>{EXPERIENCE_TYPE_LABEL[data.type]}</span>
           {date && <time dateTime={data.date ?? undefined}>— {date}</time>}
         </div>
-        <h1 className="mt-3 font-serif text-[40px] leading-tight font-medium">{title}</h1>
+        {/* Sin título el h1 queda solo para lectores de pantalla */}
+        <h1 className={data.title ? "mt-3 font-serif text-[40px] leading-tight font-medium" : "sr-only"}>{title}</h1>
         {data.participants.length > 0 && (
           <p className="mt-2 text-muted">Con {data.participants.join(", ")}</p>
         )}
@@ -111,7 +112,7 @@ export function ExperienceDetailView({ id }: { id: string }) {
           <ConfirmDialog
             open={confirming}
             title="¿Borrar este recuerdo?"
-            message={`¿Borrar “${title}”? También se borran su foto y sus comentarios. Esta acción no se puede deshacer.`}
+            message={`¿Borrar ${quoted(data, "este recuerdo")}? También se borran su foto y sus comentarios. Esta acción no se puede deshacer.`}
             confirmLabel="Borrar"
             loading={deleting}
             onConfirm={onDelete}

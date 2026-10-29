@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { EmptyState, ErrorState } from "@/src/features/common/components/States";
-import { displayTitle, formatDate } from "@/src/features/experiencias/domain/experience";
+import { formatDate } from "@/src/features/experiencias/domain/experience";
 import { useAllComments } from "../hooks/useComments";
 
 export function AdminComments() {
@@ -32,7 +32,7 @@ export function AdminComments() {
               <p className="mt-1 text-sm text-muted">
                 <span className="text-text">{c.user.name}</span> en{" "}
                 <Link href={`/muro/${c.experience.id}`} className="text-accent underline underline-offset-[3px]">
-                  {displayTitle(c.experience)}
+                  {c.experience.title || "un recuerdo"}
                 </Link>{" "}
                 <span className="font-mono text-xs">· {formatDate(c.createdAt)}</span>
               </p>

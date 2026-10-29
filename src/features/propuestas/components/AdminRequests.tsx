@@ -6,7 +6,7 @@ import { Button } from "@/src/features/common/components/Button";
 import { EmptyState, ErrorState } from "@/src/features/common/components/States";
 import type { Notify } from "@/src/features/common/components/Toast";
 import { ApiError } from "@/src/features/common/domain/api";
-import { EXPERIENCE_TYPE_LABEL, displayTitle, formatDate } from "@/src/features/experiencias/domain/experience";
+import { EXPERIENCE_TYPE_LABEL, displayTitle, formatDate, quoted } from "@/src/features/experiencias/domain/experience";
 import type { RequestStatus, ReviewedMemoryRequest } from "../domain/memory-request";
 import { useAllRequests } from "../hooks/useRequests";
 import { requestsService } from "../services/requests.service";
@@ -28,7 +28,7 @@ export function AdminRequests({ notify }: { notify: Notify }) {
     setBusy(request.id);
     try {
       await requestsService[action](request.id);
-      notify(action === "approve" ? `“${displayTitle(request)}” ya está en el muro.` : `Se rechazó “${displayTitle(request)}”.`);
+      notify(action === "approve" ? `${quoted(request, "El recuerdo")} ya está en el muro.` : `Se rechazó ${quoted(request, "la propuesta")}.`);
     } catch (err) {
       // 409: otra pestaña (u otro admin) ya la revisó
       if (err instanceof ApiError && err.status === 409) notify(`${err.message}. Actualicé la lista.`, "error");
@@ -78,10 +78,10 @@ export function AdminRequests({ notify }: { notify: Notify }) {
                   <p className="font-serif text-2xl">
                     {r.status === "aprobada" && r.experienceId ? (
                       <Link href={`/muro/${r.experienceId}`} className="hover:text-accent hover:underline">
-                        {displayTitle(r)}
+                        {r.title || <span className="sr-only">{displayTitle(r)}</span>}
                       </Link>
                     ) : (
-                      displayTitle(r)
+                      r.title || <span className="sr-only">{displayTitle(r)}</span>
                     )}
                   </p>
                   <p className="font-mono text-xs text-muted">

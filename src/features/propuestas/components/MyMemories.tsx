@@ -13,7 +13,7 @@ import { ApiError } from "@/src/features/common/domain/api";
 import { ExperienceForm } from "@/src/features/experiencias/components/ExperienceForm";
 import type { ExperienceDetail } from "@/src/features/experiencias/domain/experience";
 import { experiencesService } from "@/src/features/experiencias/services/experiences.service";
-import { displayTitle, formatDate } from "@/src/features/experiencias/domain/experience";
+import { displayTitle, formatDate, quoted } from "@/src/features/experiencias/domain/experience";
 import { useMyComments } from "@/src/features/interacciones/hooks/useComments";
 import type { MemoryRequest } from "../domain/memory-request";
 import { useMyRequests } from "../hooks/useRequests";
@@ -100,10 +100,10 @@ function Requests({ notify }: { notify: Notify }) {
               <p className="font-serif text-xl">
                 {r.status === "aprobada" && r.experienceId ? (
                   <Link href={`/muro/${r.experienceId}`} className="hover:text-accent hover:underline">
-                    {displayTitle(r)}
+                    {r.title || <span className="sr-only">{displayTitle(r)}</span>}
                   </Link>
                 ) : (
-                  displayTitle(r)
+                  r.title || <span className="sr-only">{displayTitle(r)}</span>
                 )}
               </p>
               <p className="font-mono text-xs text-muted">enviada el {formatDate(r.createdAt)}</p>
@@ -166,8 +166,8 @@ function Requests({ notify }: { notify: Notify }) {
         title="¿Borrar este recuerdo?"
         message={
           toDelete?.status === "aprobada"
-            ? `“${displayTitle(toDelete)}” ya está en el muro. Se borrará del muro junto con su foto y sus comentarios. Esta acción no se puede deshacer.`
-            : `¿Borrar la propuesta “${toDelete ? displayTitle(toDelete) : ""}”? Esta acción no se puede deshacer.`
+            ? `${quoted(toDelete, "Este recuerdo")} ya está en el muro. Se borrará del muro junto con su foto y sus comentarios. Esta acción no se puede deshacer.`
+            : `¿Borrar ${toDelete?.title ? `la propuesta “${toDelete.title}”` : "esta propuesta"}? Esta acción no se puede deshacer.`
         }
         confirmLabel="Borrar"
         loading={deleting}
@@ -191,7 +191,7 @@ function Comments() {
           <p className="mt-1 text-sm text-muted">
             en{" "}
             <Link href={`/muro/${c.experience.id}`} className="text-accent underline underline-offset-[3px]">
-              {displayTitle(c.experience)}
+              {c.experience.title || "un recuerdo"}
             </Link>{" "}
             <span className="font-mono text-xs">· {formatDate(c.createdAt)}</span>
           </p>

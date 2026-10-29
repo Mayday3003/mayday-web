@@ -59,13 +59,18 @@ export type ExperienceMeta = {
 };
 
 /**
- * El título es opcional en las propuestas: sin él se nombra por tipo y fecha ("Viaje · 3 de enero de 2025"),
- * así ninguna tarjeta, enlace o aviso queda vacío.
+ * Nombre accesible de un recuerdo: el título o, si no tiene, el tipo y la fecha.
+ * Solo para lectores de pantalla (alt, aria-label, sr-only): sin título no se muestra nada en pantalla.
  */
 export function displayTitle(item: { title: string; type: ExperienceType; date?: string | null }) {
   if (item.title.trim()) return item.title;
   const date = formatDate(item.date ?? null);
   return date ? `${EXPERIENCE_TYPE_LABEL[item.type]} · ${date}` : `${EXPERIENCE_TYPE_LABEL[item.type]} sin título`;
+}
+
+/** Para los avisos: “Título” entre comillas, o el texto de reemplazo si no tiene título */
+export function quoted(item: { title: string }, fallback: string) {
+  return item.title.trim() ? `“${item.title}”` : fallback;
 }
 
 /** "12 de noviembre de 2025". Se formatea en UTC para que no se corra un día. */

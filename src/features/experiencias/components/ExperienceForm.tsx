@@ -12,10 +12,12 @@ const TYPES = Object.keys(EXPERIENCE_TYPE_LABEL) as ExperienceType[];
 const control =
   "mt-1.5 w-full rounded-lg border bg-bg px-3 py-2.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent";
 
-// Mismas reglas que CreateExperienceBodyDto en la API
-function validate(data: ExperienceInput): FieldErrors {
+// Mismas reglas que los DTOs de la API: al crear se piden título y descripción, al editar pueden quedar vacíos
+function validate(data: ExperienceInput, editing: boolean): FieldErrors {
   const errors: FieldErrors = {};
-  if (data.title.length < 3 || data.title.length > 150) errors.title = "El título debe tener entre 3 y 150 caracteres";
+  if (data.title.length > 150) errors.title = "El título no puede pasar de 150 caracteres";
+  if (editing) return errors;
+  if (data.title.length < 3) errors.title = "El título debe tener entre 3 y 150 caracteres";
   if (data.description.length < 10) errors.description = "La descripción debe tener al menos 10 caracteres";
   return errors;
 }
@@ -54,7 +56,7 @@ export function ExperienceForm({ experience, onSaved, onCancel }: ExperienceForm
       date: form.date || null,
       participants: [...new Set(form.participants.split(",").map((p) => p.trim()).filter(Boolean))],
     };
-    const local = validate(data);
+    const local = validate(data, !!experience);
     setErrors(local);
     setFormError("");
     if (Object.keys(local).length) return;
@@ -84,7 +86,7 @@ export function ExperienceForm({ experience, onSaved, onCancel }: ExperienceForm
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
-      <Field label="Título *" value={form.title} onChange={update("title")} error={errors.title} maxLength={150} />
+      <Field label={experience ? "Título" : "Título *"} value={form.title} onChange={update("title")} error={errors.title} maxLength={150} />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <label className="block">
@@ -101,7 +103,7 @@ export function ExperienceForm({ experience, onSaved, onCancel }: ExperienceForm
       </div>
 
       <label className="block">
-        <span className="text-sm font-medium">Descripción *</span>
+        <span className="text-sm font-medium">{experience ? "Descripción" : "Descripción *"}</span>
         <textarea
           rows={4}
           value={form.description}

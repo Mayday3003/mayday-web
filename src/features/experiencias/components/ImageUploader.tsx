@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 10 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 type ImageUploaderProps = {
@@ -37,7 +37,7 @@ export function ImageUploader({ currentUrl, error, onChange }: ImageUploaderProp
       return;
     }
     if (file.size > MAX_BYTES) {
-      setLocalError("La imagen pesa más de 5 MB");
+      setLocalError("La imagen pesa más de 10 MB");
       e.target.value = "";
       return;
     }
@@ -74,7 +74,7 @@ export function ImageUploader({ currentUrl, error, onChange }: ImageUploaderProp
             className="block w-full text-sm file:mr-3 file:rounded-lg file:border file:border-line file:bg-bg file:px-3 file:py-1.5 file:text-text hover:file:border-accent"
           />
           <p id={`${id}-hint`} className="mt-1.5 text-xs text-muted">
-            JPG, PNG, WEBP o GIF · máximo 5 MB
+            JPG, PNG, WEBP o GIF · máximo 10 MB
           </p>
           {message && (
             <p id={`${id}-error`} className="mt-1.5 text-sm text-danger">

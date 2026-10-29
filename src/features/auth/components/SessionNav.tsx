@@ -38,9 +38,16 @@ export function SessionNav({ children }: { children: React.ReactNode }) {
             logout();
             router.push("/");
           }}
-          className="underline-offset-[4px] hover:text-danger hover:underline"
+          aria-label="Salir"
+          title="Salir"
+          className="-m-1 rounded p-1 hover:text-danger"
         >
-          Salir
+          {/* Puerta con flecha hacia afuera: el nombre accesible lo da aria-label */}
+          <svg viewBox="0 0 24 24" aria-hidden className="size-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <path d="M16 17l5-5-5-5" />
+            <path d="M21 12H9" />
+          </svg>
         </button>
       </>
     );

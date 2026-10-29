@@ -1,6 +1,6 @@
 # Mayday Web
 
-Frontend de **Mayday · Bitácora y muro de recuerdos**: mis intereses, mis proyectos de investigación y un muro de recuerdos con las personas que amo. Es la migración a Next.js de la Entrega 1, conectada a la API REST de la Entrega 2.
+Frontend de **Mayday**: mis intereses, mis proyectos de investigación y un muro de recuerdos con las personas que amo. Es la migración a Next.js de la Entrega 1, conectada a la API REST de la Entrega 2.
 
 | | |
 |---|---|
@@ -87,30 +87,44 @@ La seguridad real está en la API: cualquier petición sin token responde **401*
 
 ## Captura de Network
 
-<!-- Pega aquí la captura de DevTools → Network de una petición protegida
-     (por ejemplo GET /api/propuestas/mias) donde se vea el header
-     "Authorization: Bearer …". Guárdala en docs/ y enlázala así:
-     ![Petición con el header Authorization](docs/network.png) -->
+Petición protegida `GET /api/propuestas/mias` con el header `Authorization: Bearer …` (token tapado):
+
+![Petición con el header Authorization](docs/network.png)
 
 ## Decisiones técnicas
 
-<!--
-  ESTA SECCIÓN LA ESCRIBES TÚ, con tus palabras (el profe lo pide sin IA).
-  Preguntas guía; borra este comentario cuando termines:
 
-  1. Flujo del login: ¿qué pasa desde que escribes el correo y la contraseña hasta que
-     la navbar cambia? (LoginForm → useAuth.login → authService → http.ts → la API
-     responde { token, user } → saveSession guarda la cookie y el usuario → la navbar
-     se entera por useSyncExternalStore)
-  2. ¿Dónde guardas el token y por qué ahí? (cookie mayday_token, no httpOnly porque
-     el cliente la lee para armar el header; proxy.ts también la lee en el servidor)
-  3. ¿Qué riesgo tiene y cómo lo mitigas? (XSS podría leerla; React escapa el HTML,
-     no se usa dangerouslySetInnerHTML, SameSite=Lax, Secure en https, expira en 1 día)
-  4. ¿Cómo sabe cada petición quién eres? (http.ts agrega Authorization: Bearer <token>)
-  5. 401 vs 403 desde el frontend: ¿qué hace la app con cada uno? (401 con token →
-     cierra la sesión y manda a /login?expirado=1; 403 → muestra el mensaje)
-  6. ¿Por qué "ocultar un botón no es proteger una ruta"? (proxy y guards son
-     experiencia de usuario; quien protege es la API)
-  7. ¿Por qué el formulario ya no pide "correo de contacto"? (el autor sale del token)
-  8. Uso de IA: qué le pediste, qué cambiaste tú y qué aprendiste.
--->
+### Flujo del login
+
+Cuando se escribe el correo y la contraseña, `LoginForm` llama a `useAuth.login`, que a su vez usa `authService` para hacer la petición a la API a través de `http.ts`. Si las credenciales son correctas, la API responde con `{ token, user }`. Entonces `saveSession` guarda el token en una cookie y el usuario en la sesión del cliente. La navbar está suscrita a esa sesión con `useSyncExternalStore`, así que se actualiza sola y muestra el saludo sin recargar la página.
+
+### Dónde se guarda el token
+
+El token se guarda en la cookie `mayday_token`. No es `httpOnly` porque el código del cliente necesita leerla para armar el header `Authorization`. Además, `proxy.ts` también la lee en el servidor para decidir si deja entrar a las rutas privadas o redirige al login.
+
+### Riesgo y mitigación
+
+El riesgo principal es un ataque XSS: si alguien lograra ejecutar JavaScript en la página, podría leer la cookie. Para reducirlo, React escapa el HTML que se muestra y en el proyecto no se usa `dangerouslySetInnerHTML`. La cookie además tiene `SameSite=Lax`, se marca `Secure` cuando el sitio va por https y expira en un día, así que un token robado deja de servir pronto.
+
+### Cómo sabe cada petición quién soy
+
+`http.ts` agrega automáticamente el header `Authorization: Bearer <token>` a cada petición. La API verifica ese JWT y saca de él la identidad del usuario. En la captura de Network de arriba se ve el header en la petición `GET /api/propuestas/mias`.
+
+### 401 vs 403
+
+- **401**: el token no es válido o ya expiró. Si había token, la app cierra la sesión y redirige a `/login?expirado=1` para que el usuario vuelva a entrar.
+- **403**: la API sabe quién soy, pero no tengo permiso para esa acción. La app no cierra la sesión; solo muestra el mensaje de error.
+
+### Ocultar un botón no es proteger una ruta
+
+Esconder un botón o redirigir con `proxy.ts` y los guards solo mejora la experiencia de usuario. Cualquiera podría llamar a la API directamente con herramientas como curl o Postman. La protección real está en el backend, que valida el token y los permisos en cada petición.
+
+### Por qué el formulario ya no pide "correo de contacto"
+
+El autor de una propuesta ahora sale del token, no de un campo que llena el usuario. Así nadie puede publicar a nombre de otra persona escribiendo un correo ajeno.
+
+### Uso de IA
+
+Se usó claude code en una parte considerable del proyecto, siempre revisando, aprobando y corrigiendo para que cumpliera con las decisiones técnicas que se pedían en la entrega y en cómo quería que quedara la app.
+
+Por ejemplo, después de que claude terminaba cualquier tarea, revisé y comprobé que si funcionara bien, de hecho en algunos momentos tuve que corregir varios problemas de seguridad que dejaba expuestos, por lo que aunque fue muy útil, también se realizó parte de trabajo manual para evitar vulnerabilidades.

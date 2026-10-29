@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/src/features/common/components/Button";
 import { Field } from "@/src/features/common/components/Field";
+import { focusFirstError } from "@/src/features/common/forms";
 import { ApiError, type FieldErrors } from "@/src/features/common/domain/api";
 import { useAuth } from "../hooks/useAuth";
 
@@ -32,12 +33,13 @@ export function LoginForm() {
   const [formError, setFormError] = useState(params.get("expirado") ? "Tu sesión venció. Ingresa de nuevo." : "");
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     const local = validate(email.trim(), password);
     setErrors(local);
     setFormError("");
-    if (Object.keys(local).length) return;
+    if (Object.keys(local).length) return focusFirstError(formEl);
 
     setLoading(true);
     try {
@@ -46,6 +48,7 @@ export function LoginForm() {
     } catch (err) {
       if (err instanceof ApiError) {
         setErrors(err.fields ?? {});
+        if (err.fields) focusFirstError(formEl);
         // El 401 no dice cuál de los dos campos falló
         setFormError(err.status === 401 ? "El correo o la contraseña no coinciden." : err.fields ? "" : err.message);
       } else {
@@ -60,6 +63,7 @@ export function LoginForm() {
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       <Field
         label="Correo"
+        name="email"
         type="email"
         autoComplete="email"
         value={email}
@@ -68,6 +72,7 @@ export function LoginForm() {
       />
       <Field
         label="Contraseña"
+        name="password"
         type="password"
         autoComplete="current-password"
         value={password}

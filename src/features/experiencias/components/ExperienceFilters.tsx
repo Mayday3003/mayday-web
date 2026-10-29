@@ -14,6 +14,8 @@ export function ExperienceFilters() {
   const activeType = params.get("type");
   const [search, setSearch] = useState(params.get("search") ?? "");
   const extraActive = Boolean(params.get("participant") || params.get("from") || params.get("to"));
+  // Abierto si hay filtros extra al llegar; después lo maneja quien lo abre o cierra
+  const [moreOpen, setMoreOpen] = useState(extraActive);
 
   function tab(active: boolean) {
     return active
@@ -47,7 +49,7 @@ export function ExperienceFilters() {
             e.preventDefault();
             params.set({ search: search.trim() || undefined });
           }}
-          className="w-full sm:w-72"
+          className="flex w-full gap-3 sm:w-80"
         >
           <label htmlFor="buscar" className="sr-only">
             Buscar recuerdos
@@ -57,14 +59,17 @@ export function ExperienceFilters() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar y presionar Enter"
+            placeholder="Buscar recuerdos…"
             maxLength={100}
-            className={`${field} w-full`}
+            className={`${field} min-w-0 flex-1`}
           />
+          <button type="submit" className="shrink-0 text-muted underline underline-offset-[3px] hover:text-accent">
+            Buscar
+          </button>
         </form>
       </div>
 
-      <details open={extraActive} className="group text-sm">
+      <details open={moreOpen} onToggle={(e) => setMoreOpen(e.currentTarget.open)} className="group text-sm">
         <summary className="cursor-pointer list-none text-muted hover:text-text">
           <span className="group-open:hidden">+ Más filtros</span>
           <span className="hidden group-open:inline">− Menos filtros</span>

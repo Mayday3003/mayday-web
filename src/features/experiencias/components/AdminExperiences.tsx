@@ -9,7 +9,7 @@ import { Pagination } from "@/src/features/common/components/Pagination";
 import { EmptyState, ErrorState } from "@/src/features/common/components/States";
 import type { Notify } from "@/src/features/common/components/Toast";
 import { ApiError } from "@/src/features/common/domain/api";
-import { EXPERIENCE_TYPE_LABEL, formatDate, type Experience } from "../domain/experience";
+import { EXPERIENCE_TYPE_LABEL, displayTitle, formatDate, type Experience } from "../domain/experience";
 import { useExperiences } from "../hooks/useExperiences";
 import { experiencesService } from "../services/experiences.service";
 import { ExperienceForm } from "./ExperienceForm";
@@ -35,7 +35,7 @@ export function AdminExperiences({ notify }: { notify: Notify }) {
     const created = editing?.mode === "create";
     setEditing(null);
     if (warning) notify(warning, "error");
-    else notify(created ? `“${experience.title}” quedó en el muro.` : "Cambios guardados.");
+    else notify(created ? `“${displayTitle(experience)}” quedó en el muro.` : "Cambios guardados.");
     retry();
   }
 
@@ -44,12 +44,12 @@ export function AdminExperiences({ notify }: { notify: Notify }) {
     setDeleting(true);
     try {
       await experiencesService.remove(toDelete.id);
-      notify(`Se eliminó “${toDelete.title}”.`);
+      notify(`Se borró “${displayTitle(toDelete)}”.`);
       // Si era el último de la página, se vuelve a la anterior
       if (data?.data.length === 1 && page > 1) setPage(page - 1);
       else retry();
     } catch (err) {
-      notify(err instanceof ApiError ? err.message : "No se pudo eliminar.", "error");
+      notify(err instanceof ApiError ? err.message : "No se pudo borrar.", "error");
     } finally {
       setDeleting(false);
       setToDelete(null);
@@ -108,7 +108,7 @@ export function AdminExperiences({ notify }: { notify: Notify }) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <Link href={`/muro/${exp.id}`} className="font-serif text-xl hover:text-accent hover:underline">
-                    {exp.title}
+                    {displayTitle(exp)}
                   </Link>
                   <p className="font-mono text-xs text-muted">
                     {EXPERIENCE_TYPE_LABEL[exp.type]}
@@ -116,16 +116,16 @@ export function AdminExperiences({ notify }: { notify: Notify }) {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="secondary" onClick={() => setEditing({ mode: "edit", experience: exp })} aria-label={`Editar ${exp.title}`}>
+                  <Button variant="secondary" onClick={() => setEditing({ mode: "edit", experience: exp })} aria-label={`Editar ${displayTitle(exp)}`}>
                     Editar
                   </Button>
                   <Button
                     variant="secondary"
                     onClick={() => setToDelete(exp)}
-                    aria-label={`Eliminar ${exp.title}`}
+                    aria-label={`Borrar ${displayTitle(exp)}`}
                     className="hover:!border-danger hover:!text-danger"
                   >
-                    Eliminar
+                    Borrar
                   </Button>
                 </div>
               </li>
@@ -148,9 +148,9 @@ export function AdminExperiences({ notify }: { notify: Notify }) {
 
       <ConfirmDialog
         open={toDelete !== null}
-        title="¿Eliminar recuerdo?"
-        message={`¿Eliminar “${toDelete?.title ?? ""}”? También se borran su foto y sus comentarios. Esta acción no se puede deshacer.`}
-        confirmLabel="Eliminar"
+        title="¿Borrar este recuerdo?"
+        message={`¿Borrar “${toDelete ? displayTitle(toDelete) : ""}”? También se borran su foto y sus comentarios. Esta acción no se puede deshacer.`}
+        confirmLabel="Borrar"
         loading={deleting}
         onConfirm={onDelete}
         onCancel={() => setToDelete(null)}

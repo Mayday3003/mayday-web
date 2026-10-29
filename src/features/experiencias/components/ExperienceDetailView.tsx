@@ -7,10 +7,11 @@ import { useAuth } from "@/src/features/auth/hooks/useAuth";
 import { Button } from "@/src/features/common/components/Button";
 import { ConfirmDialog } from "@/src/features/common/components/ConfirmDialog";
 import { Modal } from "@/src/features/common/components/Modal";
+import { useToast } from "@/src/features/common/components/Toast";
 import { ErrorState } from "@/src/features/common/components/States";
 import { ApiError } from "@/src/features/common/domain/api";
 import { CommentForm } from "@/src/features/interacciones/components/CommentForm";
-import { EXPERIENCE_TYPE_LABEL, formatDate } from "../domain/experience";
+import { EXPERIENCE_TYPE_LABEL, displayTitle, formatDate } from "../domain/experience";
 import { useExperience } from "../hooks/useExperiences";
 import { experiencesService } from "../services/experiences.service";
 import { ExperienceForm } from "./ExperienceForm";
@@ -24,7 +25,7 @@ export function ExperienceDetailView({ id }: { id: string }) {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [editing, setEditing] = useState(false);
-  const [saveWarning, setSaveWarning] = useState("");
+  const { notify, toast } = useToast();
 
   async function onDelete() {
     setDeleting(true);
@@ -40,8 +41,10 @@ export function ExperienceDetailView({ id }: { id: string }) {
   }
 
   if (loading) {
+    // El toast sigue visible mientras se recarga el recuerdo después de editarlo
     return (
       <div role="status" className="space-y-4">
+        {toast}
         <span className="sr-only">Cargando recuerdo…</span>
         <div className="aspect-[4/3] animate-pulse bg-surface motion-reduce:animate-none" />
         <div className="h-8 w-2/3 animate-pulse rounded bg-surface motion-reduce:animate-none" />
@@ -53,6 +56,7 @@ export function ExperienceDetailView({ id }: { id: string }) {
   if (error || !data) return <ErrorState error={error!} onRetry={retry} />;
 
   const date = formatDate(data.date);
+  const title = displayTitle(data);
   // Solo es una ayuda visual: la API vuelve a revisar el permiso y responde 403 si no corresponde
   const canManage = isAdmin || (!!user && user.id === data.authorId);
 
@@ -60,7 +64,7 @@ export function ExperienceDetailView({ id }: { id: string }) {
     <article>
       <figure className="-rotate-[0.6deg] bg-paper p-3 pb-4 shadow-[4px_4px_0_var(--line)] sm:p-4">
         <div className="relative aspect-[4/3]">
-          <ExperiencePhoto src={data.imageUrl} alt={data.title} sizes="(min-width: 768px) 720px, 100vw" priority />
+          <ExperiencePhoto src={data.imageUrl} alt={title} sizes="(min-width: 768px) 720px, 100vw" priority />
         </div>
       </figure>
 
@@ -69,7 +73,7 @@ export function ExperienceDetailView({ id }: { id: string }) {
           <span>{EXPERIENCE_TYPE_LABEL[data.type]}</span>
           {date && <time dateTime={data.date ?? undefined}>— {date}</time>}
         </div>
-        <h1 className="mt-3 font-serif text-[40px] leading-tight font-medium">{data.title}</h1>
+        <h1 className="mt-3 font-serif text-[40px] leading-tight font-medium">{title}</h1>
         {data.participants.length > 0 && (
           <p className="mt-2 text-muted">Con {data.participants.join(", ")}</p>
         )}
@@ -87,9 +91,9 @@ export function ExperienceDetailView({ id }: { id: string }) {
               Borrar recuerdo
             </Button>
           </div>
-          {(deleteError || saveWarning) && (
+          {deleteError && (
             <p role="alert" className="mt-3 text-sm text-danger">
-              {deleteError || saveWarning}
+              {deleteError}
             </p>
           )}
           <Modal open={editing} title="Editar recuerdo" onClose={() => setEditing(false)}>
@@ -98,7 +102,7 @@ export function ExperienceDetailView({ id }: { id: string }) {
               experience={data}
               onSaved={(_, warning) => {
                 setEditing(false);
-                setSaveWarning(warning ?? "");
+                notify(warning ?? "Cambios guardados.", warning ? "error" : "ok");
                 retry();
               }}
               onCancel={() => setEditing(false)}
@@ -107,7 +111,7 @@ export function ExperienceDetailView({ id }: { id: string }) {
           <ConfirmDialog
             open={confirming}
             title="¿Borrar este recuerdo?"
-            message={`¿Borrar “${data.title}”? También se borran su foto y sus comentarios. Esta acción no se puede deshacer.`}
+            message={`¿Borrar “${title}”? También se borran su foto y sus comentarios. Esta acción no se puede deshacer.`}
             confirmLabel="Borrar"
             loading={deleting}
             onConfirm={onDelete}
@@ -115,6 +119,8 @@ export function ExperienceDetailView({ id }: { id: string }) {
           />
         </div>
       )}
+
+      {toast}
 
       <section className="mt-14 border-t border-line pt-10" aria-labelledby="comentarios">
         <h2 id="comentarios" className="font-serif text-[28px] font-medium">

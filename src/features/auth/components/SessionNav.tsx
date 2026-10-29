@@ -31,7 +31,7 @@ export function SessionNav({ children }: { children: React.ReactNode }) {
           }}
           aria-label="Salir"
           title="Salir"
-          className="-m-1 shrink-0 rounded p-1 hover:text-danger"
+          className="-m-3.5 shrink-0 rounded p-3.5 hover:text-danger"
         >
           {/* Puerta con flecha hacia afuera: el nombre accesible lo da aria-label */}
           <svg viewBox="0 0 24 24" aria-hidden className="size-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">

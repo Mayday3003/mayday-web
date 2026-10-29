@@ -14,7 +14,7 @@ export function Navbar() {
       </div>
       <div className="mx-auto flex max-w-[1080px] flex-col items-center gap-2 px-4 pt-4 pb-4 sm:gap-3 sm:pt-5 sm:px-6">
         <Link href="/" className="font-serif text-4xl italic">
-          Mayday <span className="text-accent not-italic">❀</span>
+          Mayday <span aria-hidden className="text-accent not-italic">❀</span>
         </Link>
         {/* usePathname necesita Suspense en las páginas con prerender parcial */}
         <Suspense fallback={<NavList pathname={null} />}>

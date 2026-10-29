@@ -30,7 +30,7 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-label="Cambiar entre tema claro y oscuro"
       title="Cambiar tema"
-      className="-m-1 rounded p-1 text-muted hover:text-text"
+      className="-m-3.5 rounded p-3.5 text-muted hover:text-text"
     >
       {/* En claro se ofrece la luna (pasar a noche); en oscuro, el sol */}
       <svg {...iconProps} className="size-4 dark:hidden">

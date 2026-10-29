@@ -27,5 +27,5 @@ export function useQueryParams() {
     router.push(pathname, { scroll: false });
   }
 
-  return { get, set, clear, hasAny: searchParams.toString() !== "" };
+  return { get, set, clear, toString: () => searchParams.toString(), hasAny: searchParams.toString() !== "" };
 }

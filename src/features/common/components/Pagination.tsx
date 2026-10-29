@@ -4,10 +4,16 @@ type PaginationProps = {
   onChange: (page: number) => void;
 };
 
+/** Con muchas páginas se ven la primera, la última y las vecinas de la actual: 1 … 4 5 6 … 20 */
+function visiblePages(page: number, totalPages: number) {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+  return [...new Set([1, page - 1, page, page + 1, totalPages])].filter((n) => n >= 1 && n <= totalPages).sort((a, b) => a - b);
+}
+
 /** ← anterior · 1 2 3 · siguiente → */
 export function Pagination({ page, totalPages, onChange }: PaginationProps) {
   if (totalPages <= 1) return null;
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const pages = visiblePages(page, totalPages);
   const arrow = "text-muted hover:text-accent disabled:pointer-events-none disabled:opacity-40";
 
   return (
@@ -17,8 +23,13 @@ export function Pagination({ page, totalPages, onChange }: PaginationProps) {
       </button>
       <span aria-hidden className="text-line">·</span>
       <ul className="flex gap-1">
-        {pages.map((n) => (
-          <li key={n}>
+        {pages.map((n, i) => (
+          <li key={n} className="flex items-center gap-1">
+            {i > 0 && n - pages[i - 1] > 1 && (
+              <span aria-hidden className="px-1 text-muted">
+                …
+              </span>
+            )}
             <button
               type="button"
               onClick={() => onChange(n)}

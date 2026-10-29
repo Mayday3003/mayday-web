@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/src/features/common/components/Button";
 import { Field } from "@/src/features/common/components/Field";
+import { focusFirstError } from "@/src/features/common/forms";
 import { ApiError, type FieldErrors } from "@/src/features/common/domain/api";
 import type { RegisterRequest } from "../domain/auth";
 import { useAuth } from "../hooks/useAuth";
@@ -34,13 +35,14 @@ export function RegisterForm() {
     return (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     const data = { name: form.name.trim(), email: form.email.trim(), password: form.password };
     const local = validate(data);
     setErrors(local);
     setFormError("");
-    if (Object.keys(local).length) return;
+    if (Object.keys(local).length) return focusFirstError(formEl);
 
     setLoading(true);
     try {
@@ -49,8 +51,10 @@ export function RegisterForm() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setErrors({ email: "Ya existe una cuenta con este correo" });
+        focusFirstError(formEl);
       } else if (err instanceof ApiError && err.fields) {
         setErrors(err.fields);
+        focusFirstError(formEl);
       } else {
         setFormError(err instanceof ApiError ? err.message : "Algo salió mal. Intenta de nuevo.");
       }
@@ -61,9 +65,10 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
-      <Field label="Nombre" autoComplete="name" value={form.name} onChange={update("name")} error={errors.name} />
+      <Field label="Nombre" name="name" autoComplete="name" value={form.name} onChange={update("name")} error={errors.name} />
       <Field
         label="Correo"
+        name="email"
         type="email"
         autoComplete="email"
         value={form.email}
@@ -72,6 +77,7 @@ export function RegisterForm() {
       />
       <Field
         label="Contraseña"
+        name="password"
         type="password"
         autoComplete="new-password"
         value={form.password}

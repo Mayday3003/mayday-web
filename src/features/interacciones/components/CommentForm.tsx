@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { Button } from "@/src/features/common/components/Button";
 import { ApiError } from "@/src/features/common/domain/api";
+import { focusFirstError } from "@/src/features/common/forms";
 import { useCreateComment } from "../hooks/useComments";
 
 type Props = { experienceId: string; onCreated: () => void };
@@ -13,19 +14,23 @@ export function CommentForm({ experienceId, onCreated }: Props) {
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [published, setPublished] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     const text = content.trim();
+    setPublished(false);
     if (text.length < 3) {
       setError("El comentario debe tener al menos 3 caracteres");
-      return;
+      return focusFirstError(formEl);
     }
     setError("");
     setLoading(true);
     try {
       await createComment({ content: text, experienceId });
       setContent("");
+      setPublished(true);
       onCreated();
     } catch (err) {
       setError(err instanceof ApiError ? (err.fields?.content ?? err.message) : "No se pudo publicar el comentario.");
@@ -43,7 +48,10 @@ export function CommentForm({ experienceId, onCreated }: Props) {
         id={id}
         rows={3}
         value={content}
-        onChange={(e) => setContent(e.target.value)}
+        onChange={(e) => {
+          setContent(e.target.value);
+          setPublished(false);
+        }}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         className={`mt-1.5 w-full rounded-lg border bg-bg px-3 py-2.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent ${
@@ -58,6 +66,9 @@ export function CommentForm({ experienceId, onCreated }: Props) {
       <Button type="submit" loading={loading} className="mt-3">
         {loading ? "Publicando…" : "Publicar"}
       </Button>
+      <p role="status" className="mt-2 text-sm text-ok">
+        {published && "Comentario publicado."}
+      </p>
     </form>
   );
 }

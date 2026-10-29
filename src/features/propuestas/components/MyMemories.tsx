@@ -7,12 +7,13 @@ import { Button } from "@/src/features/common/components/Button";
 import { ButtonLink } from "@/src/features/common/components/ButtonLink";
 import { ConfirmDialog } from "@/src/features/common/components/ConfirmDialog";
 import { Modal } from "@/src/features/common/components/Modal";
+import { useToast, type Notify } from "@/src/features/common/components/Toast";
 import { EmptyState, ErrorState } from "@/src/features/common/components/States";
 import { ApiError } from "@/src/features/common/domain/api";
 import { ExperienceForm } from "@/src/features/experiencias/components/ExperienceForm";
 import type { ExperienceDetail } from "@/src/features/experiencias/domain/experience";
 import { experiencesService } from "@/src/features/experiencias/services/experiences.service";
-import { formatDate } from "@/src/features/experiencias/domain/experience";
+import { displayTitle, formatDate } from "@/src/features/experiencias/domain/experience";
 import { useMyComments } from "@/src/features/interacciones/hooks/useComments";
 import type { MemoryRequest } from "../domain/memory-request";
 import { useMyRequests } from "../hooks/useRequests";
@@ -33,7 +34,7 @@ function ListLoading() {
   );
 }
 
-function Requests() {
+function Requests({ notify }: { notify: Notify }) {
   const { data, error, loading, retry } = useMyRequests();
   const [toDelete, setToDelete] = useState<MemoryRequest | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -99,10 +100,10 @@ function Requests() {
               <p className="font-serif text-xl">
                 {r.status === "aprobada" && r.experienceId ? (
                   <Link href={`/muro/${r.experienceId}`} className="hover:text-accent hover:underline">
-                    {r.title}
+                    {displayTitle(r)}
                   </Link>
                 ) : (
-                  r.title
+                  displayTitle(r)
                 )}
               </p>
               <p className="font-mono text-xs text-muted">enviada el {formatDate(r.createdAt)}</p>
@@ -114,7 +115,7 @@ function Requests() {
                   variant="secondary"
                   onClick={() => onEdit(r)}
                   loading={loadingEdit === r.id}
-                  aria-label={`Editar ${r.title}`}
+                  aria-label={`Editar ${displayTitle(r)}`}
                   className="!px-3 !py-1 text-sm"
                 >
                   Editar
@@ -123,7 +124,7 @@ function Requests() {
               <Button
                 variant="secondary"
                 onClick={() => setToDelete(r)}
-                aria-label={`Borrar ${r.title}`}
+                aria-label={`Borrar ${displayTitle(r)}`}
                 className="!px-3 !py-1 text-sm hover:!border-danger hover:!text-danger"
               >
                 Borrar
@@ -139,7 +140,7 @@ function Requests() {
             experience={toEdit}
             onSaved={(_, warning) => {
               setToEdit(null);
-              setDeleteError(warning ?? "");
+              notify(warning ?? "Cambios guardados.", warning ? "error" : "ok");
               retry();
             }}
             onCancel={() => setToEdit(null)}
@@ -153,7 +154,7 @@ function Requests() {
             request={requestToEdit}
             onSaved={(photoFailed) => {
               setRequestToEdit(null);
-              setDeleteError(photoFailed ? "Se guardaron los cambios, pero la foto no se pudo subir." : "");
+              notify(photoFailed ? "Se guardaron los cambios, pero la foto no se pudo subir." : "Cambios guardados.", photoFailed ? "error" : "ok");
               retry();
             }}
             onCancel={() => setRequestToEdit(null)}
@@ -165,8 +166,8 @@ function Requests() {
         title="¿Borrar este recuerdo?"
         message={
           toDelete?.status === "aprobada"
-            ? `“${toDelete.title}” ya está en el muro. Se borrará del muro junto con su foto y sus comentarios. Esta acción no se puede deshacer.`
-            : `¿Borrar la propuesta “${toDelete?.title ?? ""}”? Esta acción no se puede deshacer.`
+            ? `“${displayTitle(toDelete)}” ya está en el muro. Se borrará del muro junto con su foto y sus comentarios. Esta acción no se puede deshacer.`
+            : `¿Borrar la propuesta “${toDelete ? displayTitle(toDelete) : ""}”? Esta acción no se puede deshacer.`
         }
         confirmLabel="Borrar"
         loading={deleting}
@@ -190,7 +191,7 @@ function Comments() {
           <p className="mt-1 text-sm text-muted">
             en{" "}
             <Link href={`/muro/${c.experience.id}`} className="text-accent underline underline-offset-[3px]">
-              {c.experience.title}
+              {displayTitle(c.experience)}
             </Link>{" "}
             <span className="font-mono text-xs">· {formatDate(c.createdAt)}</span>
           </p>
@@ -201,6 +202,8 @@ function Comments() {
 }
 
 export function MyMemories() {
+  // Vive aquí y no en la lista: al guardar, la lista se recarga y el aviso debe seguir visible
+  const { notify, toast } = useToast();
   const [tab, setTab] = useState<Tab>("propuestas");
   const params = useSearchParams();
   const sent = params.get("enviado");
@@ -236,8 +239,9 @@ export function MyMemories() {
         ))}
       </div>
       <div role="tabpanel" className="mt-8">
-        {tab === "propuestas" ? <Requests /> : <Comments />}
+        {tab === "propuestas" ? <Requests notify={notify} /> : <Comments />}
       </div>
+      {toast}
     </div>
   );
 }

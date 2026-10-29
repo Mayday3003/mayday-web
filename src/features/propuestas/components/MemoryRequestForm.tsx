@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/src/features/common/components/Button";
 import { Field } from "@/src/features/common/components/Field";
+import { focusFirstError, useUnsavedChanges } from "@/src/features/common/forms";
 import { ApiError, type FieldErrors } from "@/src/features/common/domain/api";
 import { EXPERIENCE_TYPE_LABEL, type ExperienceType } from "@/src/features/experiencias/domain/experience";
 import { ImageUploader } from "@/src/features/experiencias/components/ImageUploader";
@@ -55,6 +56,9 @@ export function MemoryRequestForm({ request, onSaved, onCancel }: MemoryRequestF
   const [previewFailed, setPreviewFailed] = useState(false);
   const [imageSource, setImageSource] = useState<ImageSource>("archivo");
   const [file, setFile] = useState<File | null>(null);
+  const [initial] = useState(() => JSON.stringify({ form, participants }));
+  const dirty = file !== null || JSON.stringify({ form, participants }) !== initial;
+  useUnsavedChanges(dirty && !loading);
 
   function update(field: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -71,8 +75,9 @@ export function MemoryRequestForm({ request, onSaved, onCancel }: MemoryRequestF
     setNewPerson("");
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     const data: CreateMemoryRequest = {
       title: form.title.trim(),
       type: form.type,
@@ -85,7 +90,7 @@ export function MemoryRequestForm({ request, onSaved, onCancel }: MemoryRequestF
     const local = validate(data, file, imageSource, !!request?.imageUrl);
     setErrors(local);
     setFormError("");
-    if (Object.keys(local).length) return;
+    if (Object.keys(local).length) return focusFirstError(formEl);
 
     setLoading(true);
     try {
@@ -97,7 +102,10 @@ export function MemoryRequestForm({ request, onSaved, onCancel }: MemoryRequestF
       }
       router.push(`/mis-recuerdos?enviado=1${imageFailed ? "&foto=fallo" : ""}`);
     } catch (err) {
-      if (err instanceof ApiError && err.fields) setErrors(err.fields);
+      if (err instanceof ApiError && err.fields) {
+        setErrors(err.fields);
+        focusFirstError(formEl);
+      }
       else setFormError(err instanceof ApiError ? err.message : "No se pudo enviar. Intenta de nuevo.");
       setLoading(false);
     }
@@ -109,6 +117,7 @@ export function MemoryRequestForm({ request, onSaved, onCancel }: MemoryRequestF
   return (
     <form
       onSubmit={onSubmit}
+      data-dirty={dirty || undefined}
       // Enter en un campo de texto enviaría el formulario a medio llenar: solo se envía con el botón
       onKeyDown={(e) => {
         if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();

@@ -17,7 +17,7 @@ export default function MuroPage() {
           <h1 className="font-serif text-[44px] leading-tight font-medium">Recuerditos</h1>
           <p className="mt-1 max-w-[52ch] text-muted">Viajes, situaciones y experiencias con las personas que quiero.</p>
         </div>
-        <ButtonLink href="/muro/nuevo">+ Añadir recuerdo</ButtonLink>
+        <ButtonLink href="/muro/nuevo">+ Agregar recuerdo</ButtonLink>
       </header>
 
       <Suspense>

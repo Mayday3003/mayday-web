@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/src/features/common/components/Button";
 import { Field } from "@/src/features/common/components/Field";
+import { focusFirstError, useUnsavedChanges } from "@/src/features/common/forms";
 import { ApiError, type FieldErrors } from "@/src/features/common/domain/api";
 import { EXPERIENCE_TYPE_LABEL, type Experience, type ExperienceInput, type ExperienceType } from "../domain/experience";
 import { experiencesService } from "../services/experiences.service";
@@ -41,14 +42,18 @@ export function ExperienceForm({ experience, onSaved, onCancel }: ExperienceForm
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initial] = useState(() => JSON.stringify(form));
+  const dirty = file !== null || JSON.stringify(form) !== initial;
+  useUnsavedChanges(dirty && !loading);
 
   function update(field: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     const data: ExperienceInput = {
       title: form.title.trim(),
       type: form.type,
@@ -59,14 +64,17 @@ export function ExperienceForm({ experience, onSaved, onCancel }: ExperienceForm
     const local = validate(data, !!experience);
     setErrors(local);
     setFormError("");
-    if (Object.keys(local).length) return;
+    if (Object.keys(local).length) return focusFirstError(formEl);
 
     setLoading(true);
     let saved: Experience;
     try {
       saved = experience ? await experiencesService.update(experience.id, data) : await experiencesService.create(data);
     } catch (err) {
-      if (err instanceof ApiError && err.fields) setErrors(err.fields);
+      if (err instanceof ApiError && err.fields) {
+        setErrors(err.fields);
+        focusFirstError(formEl);
+      }
       else setFormError(err instanceof ApiError ? err.message : "No se pudo guardar. Intenta de nuevo.");
       setLoading(false);
       return;
@@ -85,7 +93,7 @@ export function ExperienceForm({ experience, onSaved, onCancel }: ExperienceForm
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-5">
+    <form onSubmit={onSubmit} data-dirty={dirty || undefined} noValidate className="space-y-5">
       <Field label={experience ? "Título" : "Título *"} value={form.title} onChange={update("title")} error={errors.title} maxLength={150} />
 
       <div className="grid gap-5 sm:grid-cols-2">

@@ -23,7 +23,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel, loading = fa
           Cancelar
         </Button>
         <Button onClick={onConfirm} loading={loading} className="!bg-danger hover:!bg-danger/85">
-          {loading ? "Eliminando…" : confirmLabel}
+          {loading ? "Borrando…" : confirmLabel}
         </Button>
       </div>
     </Modal>

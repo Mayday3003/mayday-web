@@ -58,6 +58,16 @@ export type ExperienceMeta = {
   participants: string[];
 };
 
+/**
+ * El título es opcional en las propuestas: sin él se nombra por tipo y fecha ("Viaje · 3 de enero de 2025"),
+ * así ninguna tarjeta, enlace o aviso queda vacío.
+ */
+export function displayTitle(item: { title: string; type: ExperienceType; date?: string | null }) {
+  if (item.title.trim()) return item.title;
+  const date = formatDate(item.date ?? null);
+  return date ? `${EXPERIENCE_TYPE_LABEL[item.type]} · ${date}` : `${EXPERIENCE_TYPE_LABEL[item.type]} sin título`;
+}
+
 /** "12 de noviembre de 2025". Se formatea en UTC para que no se corra un día. */
 export function formatDate(iso: string | null) {
   if (!iso) return null;

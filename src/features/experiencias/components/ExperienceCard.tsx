@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EXPERIENCE_TYPE_LABEL, formatDate, type Experience } from "../domain/experience";
+import { EXPERIENCE_TYPE_LABEL, displayTitle, formatDate, type Experience } from "../domain/experience";
 import { ExperiencePhoto } from "./ExperiencePhoto";
 
 // Inclinación fija según el id: la misma foto queda igual en cada visita
@@ -13,6 +13,7 @@ function tiltFor(id: string) {
 
 export function ExperienceCard({ experience }: { experience: Experience }) {
   const date = formatDate(experience.date);
+  const title = displayTitle(experience);
 
   return (
     <Link
@@ -20,7 +21,7 @@ export function ExperienceCard({ experience }: { experience: Experience }) {
       className={`group block ${tiltFor(experience.id)} bg-paper p-3 pb-4 text-[#1c2a38] shadow-[3px_3px_0_var(--line)] hover:shadow-[3px_3px_0_var(--accent)]`}
     >
       <div className="relative aspect-[4/3] overflow-hidden">
-        <ExperiencePhoto src={experience.imageUrl} alt={experience.title} sizes="(min-width: 1024px) 340px, (min-width: 640px) 50vw, 100vw" />
+        <ExperiencePhoto src={experience.imageUrl} alt={title} sizes="(min-width: 1024px) 340px, (min-width: 640px) 50vw, 100vw" />
       </div>
       <div className="mt-3 px-1">
         <p className="font-mono text-[11px] text-[#5a768c]">
@@ -28,7 +29,7 @@ export function ExperienceCard({ experience }: { experience: Experience }) {
           {date && ` — ${date}`}
         </p>
         <h3 className="mt-1 font-serif text-xl leading-snug group-hover:underline group-hover:underline-offset-[3px]">
-          {experience.title}
+          {title}
         </h3>
         {experience.participants.length > 0 && (
           <p className="mt-1 font-hand text-lg text-[#5a768c]">con {experience.participants.join(", ")}</p>
